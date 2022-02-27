@@ -1,8 +1,6 @@
 use ncurses;
 use rand::Rng;
-use std::fs;
 
-const FILENAME: &str = "word-list-nl.txt";
 const WORD_LENGTH: usize = 5;
 const GUESSES: u32 = 5;
 
@@ -37,7 +35,7 @@ struct BoardState {
 
 fn main() {
     // This should be the only object that actually has bytes in it instead of references to bytes
-    let word_string = fs::read_to_string(FILENAME).expect("Failed to read file");
+    let word_string = include_str!("../word-list-nl.txt");
 
     // Collect the possible words into a vector of references
     let mut words: Vec<&str> = word_string
