@@ -27,9 +27,11 @@ impl Default for GuessedLetter {
     }
 }
 
+type GuessedWord = [GuessedLetter; WORD_LENGTH];
+
 #[derive(Default)]
 struct BoardState {
-    board: [[GuessedLetter; WORD_LENGTH]; GUESSES as usize],
+    board: [GuessedWord; GUESSES as usize],
     message: Option<String>,
 }
 
@@ -183,7 +185,7 @@ fn render_game(board_state: &BoardState) {
         }
         ncurses::mvaddch(win_y + y, win_x + win_width - 1, '+' as ncurses::chtype);
     };
-    let print_guess = |y: i32, guess: &[GuessedLetter; WORD_LENGTH]| {
+    let print_guess = |y: i32, guess: &GuessedWord| {
         for i in 0..WORD_LENGTH {
             ncurses::mvaddstr(win_y + y, win_x + 4 * i as i32, &"|   ".to_string());
 
