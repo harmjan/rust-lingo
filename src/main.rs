@@ -10,15 +10,15 @@ const COLOR_PAIR_CORRECT: i16 = 1;
 const COLOR_PAIR_WRONG_PLACE: i16 = 2;
 
 enum GuessedLetter {
-    // No letter has been entered on this spot yet
+    /// No letter has been entered on this spot yet
     NoLetter,
-    // A letter has been entered but it hasn't been verified yet
+    /// A letter has been entered but it hasn't been verified yet
     Letter(char),
-    // The letter has been verified and isn't in the target word
+    /// The letter has been verified and isn't in the target word
     Wrong(char),
-    // The letter has been verified and is in the target word at a different place
+    /// The letter has been verified and is in the target word at a different place
     WrongPlace(char),
-    // The letter has been verified and is in this place in the target word
+    /// The letter has been verified and is in this place in the target word
     Correct(char),
 }
 
@@ -107,17 +107,24 @@ fn play_game(words: Vec<&str>) {
             // Render the current guess on the screen
             render_game(&board_state);
 
+            // Get input from the user
             let input = ncurses::getch();
 
+            // Act on the input
             if [ncurses::KEY_ENTER, '\n' as i32].contains(&input) {
+                // On a enter or newline if the current guess is the correct amount of characters
+                // process the guess
                 if guess.len() == WORD_LENGTH {
                     break;
                 }
             } else if [ncurses::KEY_BACKSPACE, ncurses::KEY_DC, 127].contains(&input) {
+                // On a backspace remove the last entered letter, if there is one
                 if !guess.is_empty() {
                     guess.pop();
                 }
             } else if ('a' as i32..='z' as i32).contains(&input) {
+                // If the input is a letter add it to the guess, if more letters are allowed in the
+                // guess
                 if guess.len() < WORD_LENGTH {
                     guess.push(char::from_u32(input as u32).unwrap());
                 }
@@ -131,9 +138,11 @@ fn play_game(words: Vec<&str>) {
 
         // Process the guessed word
         if !words.contains(&guess.as_str()) {
+            // If the word is not in the dictionary disallow the guess
             board_state.message = Some(format!("The word {} is not in the dictionary", guess));
             continue;
         } else {
+            // If the word is in the dictionary process each character
             for (index, value) in guess.chars().enumerate().map(|(index, chr)| {
                 if word.chars().nth(index).unwrap() == chr {
                     (index, GuessedLetter::Correct(chr))
@@ -150,9 +159,11 @@ fn play_game(words: Vec<&str>) {
 
         // The game end conditions
         if word.eq_ignore_ascii_case(guess.as_str()) {
+            // If the guess is equal to the selected word the player wins and the game ends
             board_state.message = Some("You win! Press any key to quit".to_string());
             break;
         } else if guess_num as u32 == GUESSES {
+            // If the maximum amount of guesses has been reached the player loses and the game ends
             board_state.message = Some(format!("The word was {}! Press any key to quit.", word));
             break;
         }
