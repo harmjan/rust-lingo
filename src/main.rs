@@ -109,17 +109,17 @@ fn play_game(words: Vec<&str>) {
 
             let input = ncurses::getch();
 
-            if input == ncurses::KEY_ENTER || input as u8 as char == '\n' {
+            if [ncurses::KEY_ENTER, '\n' as i32].contains(&input) {
                 if guess.len() == WORD_LENGTH {
                     break;
                 }
-            } else if input == ncurses::KEY_BACKSPACE || input == ncurses::KEY_DC || input == 127 {
+            } else if [ncurses::KEY_BACKSPACE, ncurses::KEY_DC, 127].contains(&input) {
                 if !guess.is_empty() {
                     guess.pop();
                 }
-            } else if 'a' as i32 <= input && input <= 'z' as i32 {
+            } else if ('a' as i32..='z' as i32).contains(&input) {
                 if guess.len() < WORD_LENGTH {
-                    guess.push(input as u8 as char);
+                    guess.push(char::from_u32(input as u32).unwrap());
                 }
             }
 
