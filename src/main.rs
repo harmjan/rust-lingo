@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use ncurses;
 use rand::Rng;
 
@@ -52,7 +53,7 @@ fn main() {
     // Since the words vector should be sorted now should duplicate words be after each other.
     // unique from itertools could also be used but this is faster since the word list should be
     // sorted.
-    if words.windows(2).any(|x| x[0].eq(x[1])) {
+    if words.iter().tuple_windows::<(_, _)>().any(|(a, b)| a == b) {
         println!("Word list contains duplicates");
         panic!();
     }
