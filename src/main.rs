@@ -54,8 +54,7 @@ fn main() {
     // unique from itertools could also be used but this is faster since the word list should be
     // sorted.
     if words.iter().tuple_windows::<(_, _)>().any(|(a, b)| a == b) {
-        println!("Word list contains duplicates");
-        panic!();
+        panic!("Word list contains duplicates");
     }
 
     play_game(words);
