@@ -2,6 +2,7 @@ use defer::defer;
 use itertools::Itertools;
 use ncurses;
 use rand::Rng;
+use std::collections::BTreeSet;
 
 const WORD_LENGTH: usize = 5;
 const GUESSES: u32 = 5;
@@ -57,6 +58,22 @@ fn main() {
     if words.iter().tuple_windows::<(_, _)>().any(|(a, b)| a == b) {
         panic!("Word list contains duplicates");
     }
+
+    // Extract the alphabet from the dictionary
+    let alphabet;
+    {
+        let mut set = BTreeSet::<char>::new();
+        for word in words.iter() {
+            for chr in word.chars() {
+                if !set.contains(&chr) {
+                    set.insert(chr);
+                }
+            }
+        }
+        alphabet = set.into_iter().collect_vec();
+    }
+
+    println!("Alphabet: {:?}", alphabet);
 
     play_game(words);
 }
