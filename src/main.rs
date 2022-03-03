@@ -111,7 +111,11 @@ fn play_game(words: Vec<&str>) {
             let input = ncurses::getch();
 
             // Act on the input
-            if [ncurses::KEY_ENTER, '\n' as i32].contains(&input) {
+            if [27].contains(&input) {
+                // On escape close down the application
+                ncurses::endwin();
+                return;
+            } else if [ncurses::KEY_ENTER, '\n' as i32].contains(&input) {
                 // On a enter or newline if the current guess is the correct amount of characters
                 // process the guess
                 if guess.len() == WORD_LENGTH {
