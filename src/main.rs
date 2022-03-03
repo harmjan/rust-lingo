@@ -1,3 +1,4 @@
+use defer::defer;
 use itertools::Itertools;
 use ncurses;
 use rand::Rng;
@@ -86,6 +87,10 @@ fn play_game(words: Vec<&str>) {
     ncurses::raw();
     ncurses::noecho();
     ncurses::curs_set(ncurses::CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    // endwin always needs to get called
+    let _window_ender = defer(|| {
+        ncurses::endwin();
+    });
 
     let mut board_state: BoardState = Default::default();
     let mut guess_num = 0;
@@ -113,7 +118,6 @@ fn play_game(words: Vec<&str>) {
             // Act on the input
             if [27].contains(&input) {
                 // On escape close down the application
-                ncurses::endwin();
                 return;
             } else if [ncurses::KEY_ENTER, '\n' as i32].contains(&input) {
                 // On a enter or newline if the current guess is the correct amount of characters
@@ -176,7 +180,6 @@ fn play_game(words: Vec<&str>) {
     // Render the last message and quit
     render_game(&board_state);
     ncurses::getch();
-    ncurses::endwin();
 }
 
 fn render_game(board_state: &BoardState) {
