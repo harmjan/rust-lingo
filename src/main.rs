@@ -2,7 +2,6 @@ use defer::defer;
 use itertools::Itertools;
 use ncurses;
 use rand::Rng;
-use std::collections::BTreeSet;
 
 const WORD_LENGTH: usize = 5;
 const GUESSES: u32 = 5;
@@ -75,15 +74,12 @@ fn main() {
     // Extract the alphabet from the dictionary
     let alphabet;
     {
-        let mut set = BTreeSet::new();
-        for word in words.iter() {
-            for chr in word.chars() {
-                if !set.contains(&chr) {
-                    set.insert(chr);
-                }
-            }
-        }
-        alphabet = set.into_iter().collect_vec();
+        alphabet = words
+            .iter()
+            .flat_map(|word| word.chars())
+            .unique()
+            .collect_vec();
+        // TODO Sort alphabet?
     }
 
     println!("Alphabet: {:?}", alphabet);
