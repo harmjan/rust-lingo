@@ -44,8 +44,21 @@ fn main() {
 
     // Collect the possible words into a vector of references
     let mut words: Vec<&str> = word_string
+        // The dictionary should have a valid word on each line
         .lines()
-        .filter(|x| x.len() == WORD_LENGTH)
+        // Only take words of the correct length
+        .filter(|word| word.len() == WORD_LENGTH)
+        // Remove words that cannot be entered on the keyboard, the lists that are currently used
+        // also contain city names
+        .filter(|word| {
+            word.chars().all(|chr| {
+                [
+                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+                    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+                ]
+                .contains(&chr)
+            })
+        })
         .collect();
 
     // Sort the word list and make the list non-mutable afterwards
