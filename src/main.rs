@@ -62,7 +62,7 @@ fn main() {
     // Extract the alphabet from the dictionary
     let alphabet;
     {
-        let mut set = BTreeSet::<char>::new();
+        let mut set = BTreeSet::new();
         for word in words.iter() {
             for chr in word.chars() {
                 if !set.contains(&chr) {
