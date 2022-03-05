@@ -50,15 +50,7 @@ fn main() {
         .filter(|word| word.len() == WORD_LENGTH)
         // Remove words that cannot be entered on the keyboard, the lists that are currently used
         // also contain city names
-        .filter(|word| {
-            word.chars().all(|chr| {
-                [
-                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-                    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-                ]
-                .contains(&chr)
-            })
-        })
+        .filter(|word| word.chars().all(|chr| ('a'..='z').contains(&chr)))
         .collect();
 
     // Sort the word list and make the list non-mutable afterwards
