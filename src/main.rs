@@ -2,6 +2,7 @@ use defer::defer;
 use itertools::Itertools;
 use ncurses;
 use rand::Rng;
+use std::collections::HashMap;
 
 const WORD_LENGTH: usize = 5;
 const GUESSES: u32 = 5;
@@ -75,12 +76,10 @@ fn main() {
         // TODO Sort alphabet?
     }
 
-    println!("Alphabet: {:?}", alphabet);
-
-    play_game(words);
+    play_game(words, alphabet);
 }
 
-fn play_game(words: Vec<&str>) {
+fn play_game(words: Vec<&'static str>, alphabet: Vec<char>) {
     // Pick a random word
     let word;
     {
@@ -114,6 +113,28 @@ fn play_game(words: Vec<&str>) {
     let mut board_state: BoardState = Default::default();
     let mut guess_num = 0;
 
+    /// The information known about a specific letter because of the guesses
+    #[derive(PartialEq, Debug)]
+    enum LetterKnowledge {
+        /// If the letter is not in the word
+        NotInWord,
+        /// If there is no information about the letter
+        NoInformation,
+        /// If there is knowledge about places where the letter isn't
+        InWordPlaces {
+            // The places in which this letter is still possible
+            possible: [bool; WORD_LENGTH],
+            // The places in which this letter is mandatory
+            confirmed: [bool; WORD_LENGTH],
+        },
+    }
+    let mut letter_knowledge = HashMap::<char, LetterKnowledge>::new();
+
+    // Start with no knowledge about each letter
+    for letter in alphabet.iter() {
+        letter_knowledge.insert(*letter, LetterKnowledge::NoInformation);
+    }
+
     // Loop over all the guesses
     loop {
         // Get the guess this round
@@ -128,10 +149,46 @@ fn play_game(words: Vec<&str>) {
                 };
             }
 
+            // Create the list of still possible words
             board_state.possible_words = words
                 .iter()
-                // Only consider words the fit the currently typed guess
+                // Only consider words the fit the currently typed (partial) guess
                 .filter(|word| word.chars().take(guess.len()).eq(guess.chars()))
+                // Remove words that contain letters that aren't in the word or are known to not be
+                // in a specific place
+                .filter(|word| {
+                    word.chars()
+                        .enumerate()
+                        .all(|(index, chr)| match letter_knowledge[&chr] {
+                            LetterKnowledge::NotInWord => false,
+                            LetterKnowledge::NoInformation => true,
+                            LetterKnowledge::InWordPlaces {
+                                possible,
+                                confirmed: _,
+                            } => possible[index],
+                        })
+                })
+                // Remove words that don't contain letters that are known to be in the word or that
+                // have a letter confirmed on a specific spot that clashes
+                .filter(|word| {
+                    letter_knowledge
+                        .iter()
+                        .all(|(chr, knowledge)| match knowledge {
+                            LetterKnowledge::InWordPlaces {
+                                possible: _,
+                                confirmed,
+                            } => {
+                                word.chars().contains(chr)
+                                    && confirmed.iter().enumerate().all(|(index, confirmed)| {
+                                        !confirmed
+                                            || word.chars().enumerate().any(|(index2, chr2)| {
+                                                index == index2 && *chr == chr2
+                                            })
+                                    })
+                            }
+                            _ => true,
+                        })
+                })
                 .take(3 + 2 * GUESSES as usize)
                 .map(|word| *word)
                 .collect();
@@ -169,7 +226,10 @@ fn play_game(words: Vec<&str>) {
             board_state.message = None;
         }
 
-        assert!(guess.len() == WORD_LENGTH);
+        debug_assert!(
+            guess.len() == WORD_LENGTH,
+            "The guessed word length was wrong"
+        );
 
         // Process the guessed word
         if !words.contains(&guess.as_str()) {
@@ -178,16 +238,79 @@ fn play_game(words: Vec<&str>) {
             continue;
         } else {
             // If the word is in the dictionary process each character
-            for (index, value) in guess.chars().enumerate().map(|(index, chr)| {
+            for (index, chr) in guess.chars().enumerate() {
+                let knowledge = letter_knowledge.get_mut(&chr).unwrap();
                 if word.chars().nth(index).unwrap() == chr {
-                    (index, GuessedLetter::Correct(chr))
+                    debug_assert!(
+                        *knowledge != LetterKnowledge::NotInWord,
+                        "A letter in the correct place was marked as NotInWord"
+                    );
+
+                    // Update what is known about a letter
+                    *knowledge = match *knowledge {
+                        LetterKnowledge::NoInformation => {
+                            let mut confirmed = [false; WORD_LENGTH];
+                            confirmed[index] = true;
+                            LetterKnowledge::InWordPlaces {
+                                possible: [true; WORD_LENGTH],
+                                confirmed,
+                            }
+                        }
+                        LetterKnowledge::InWordPlaces {
+                            possible,
+                            mut confirmed,
+                        } => {
+                            confirmed[index] = true;
+                            LetterKnowledge::InWordPlaces {
+                                possible,
+                                confirmed,
+                            }
+                        }
+                        LetterKnowledge::NotInWord => LetterKnowledge::NotInWord,
+                    };
+
+                    board_state.board[guess_num][index] = GuessedLetter::Correct(chr);
                 } else if word.contains(chr) {
-                    (index, GuessedLetter::WrongPlace(chr))
+                    debug_assert!(
+                        *knowledge != LetterKnowledge::NotInWord,
+                        "A letter in the word but in the wrong place was marked as NotInWord"
+                    );
+
+                    // If the letter is in the wrong place set or update the knowledge about this
+                    // letter
+                    *knowledge = match *knowledge {
+                        LetterKnowledge::NoInformation => {
+                            let mut possible = [true; WORD_LENGTH];
+                            possible[index] = false;
+                            LetterKnowledge::InWordPlaces {
+                                possible,
+                                confirmed: [false; WORD_LENGTH],
+                            }
+                        }
+                        LetterKnowledge::InWordPlaces {
+                            mut possible,
+                            confirmed,
+                        } => {
+                            possible[index] = false;
+                            LetterKnowledge::InWordPlaces {
+                                possible,
+                                confirmed,
+                            }
+                        }
+                        LetterKnowledge::NotInWord => LetterKnowledge::NotInWord,
+                    };
+
+                    board_state.board[guess_num][index] = GuessedLetter::WrongPlace(chr);
                 } else {
-                    (index, GuessedLetter::Wrong(chr))
+                    debug_assert!(
+                        [LetterKnowledge::NoInformation, LetterKnowledge::NotInWord]
+                            .contains(knowledge),
+                        "A letter that isn't in the word was marked as InWord"
+                    );
+
+                    *knowledge = LetterKnowledge::NotInWord;
+                    board_state.board[guess_num][index] = GuessedLetter::Wrong(chr);
                 }
-            }) {
-                board_state.board[guess_num][index] = value;
             }
             guess_num += 1;
         }
