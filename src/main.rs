@@ -35,6 +35,7 @@ type GuessedWord = [GuessedLetter; WORD_LENGTH];
 struct BoardState {
     board: [GuessedWord; GUESSES as usize],
     message: Option<String>,
+    possible_words: Vec<&'static str>,
 }
 
 fn main() {
@@ -134,6 +135,14 @@ fn play_game(words: Vec<&str>) {
                     Some(x) => GuessedLetter::Letter(x),
                 };
             }
+
+            board_state.possible_words = words
+                .iter()
+                // Only consider words the fit the currently typed guess
+                .filter(|word| word.chars().take(guess.len()).eq(guess.chars()))
+                .take(3 + 2 * GUESSES as usize)
+                .map(|word| *word)
+                .collect();
 
             // Render the current guess on the screen
             render_game(&board_state);
@@ -281,6 +290,11 @@ fn render_game(board_state: &BoardState) {
     for i in 0..GUESSES {
         print_guess(3 + (i as i32 * 2), &board_state.board[i as usize]);
         print_horizontal_line(4 + 2 * i as i32);
+    }
+
+    // Print the possible words
+    for (index, word) in board_state.possible_words.iter().enumerate() {
+        ncurses::mvaddstr(win_y + index as i32, win_x + win_width + 1, word);
     }
 
     // Print the message below the window if there is one
